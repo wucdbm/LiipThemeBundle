@@ -170,11 +170,22 @@ class FileLocator extends BaseFileLocator
             list($bundleName, $path) = explode('/', $bundleName, 2);
         }
 
-        if (!preg_match('/(Bundle)$/i', $bundleName)) {
+        try {
+            $bundles = $this->kernel->getBundle($bundleName, false);
+        } catch (\InvalidArgumentException $e) {
+            // TODO Handle this if this code actually makes any sense at all :D
+            if (preg_match('/(Bundle)$/i', $bundleName)) {
+                // Bundle Name already has the Bundle suffix, just re-throw
+                throw $e;
+            }
+
+            // If it does not have the Bundle suffix, append it and try again
             $bundleName .= 'Bundle';
             if (0 !== strpos($path, 'Resources')) {
-                $path = 'Resources/views/'.$path;
+                $path = 'Resources/views/' . $path;
             }
+
+            $bundles = $this->kernel->getBundle($bundleName, false);
         }
 
         if (0 !== strpos($path, 'Resources')) {
@@ -182,7 +193,6 @@ class FileLocator extends BaseFileLocator
         }
 
         $resourceBundle = null;
-        $bundles = $this->kernel->getBundle($bundleName, false, true);
         // Symfony 4+ no longer supports inheritance and so we only get a single bundle
         if (!is_array($bundles)) {
             $bundles = array($bundles);
